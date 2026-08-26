@@ -1,0 +1,26 @@
+# Archives / lab PDFs (optional local only)
+*.zip
+
+# Flutter / Dart
+**/doc/api/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/build/
+**/coverage/
+**/.idea/
+**/*.iml
+**/.vscode/
+**/.history/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/ios/Flutter/.last_build_id
+**/app.*.symbols
+**/app.*.map.json
+
+# OS
+.DS_Store
+Thumbs.db

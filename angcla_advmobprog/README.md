@@ -1,0 +1,57 @@
+-- Lab Activity 2: Discussion -- 
+
+How the Model, Service, and Screen Work Together
+- In this activity, the product data is retrieved from an API. Each part of the project has its own responsibility to keep the code organized.
+
+1. constants.dart reads the HOST value from the .env file, which serves as the base URL of the API.
+2. ProductService sends an HTTP GET request to the /products endpoint. If the request is successful, it converts the JSON response into a list of product objects.
+3. Product defines the structure of each product. The fromJson() method converts the raw JSON data into Dart objects, including nested objects such as dimensions and reviews.
+4. ProductScreen requests the data when the screen loads by calling the service inside initState(). A FutureBuilder is then used to display a loading indicator, an error message, or the list of products.
+5. When a product card is tapped, ProductScreen passes that Product object to ProductDetailScreen so the details page can show more information.
+
+- Overall, the flow of data is: API → Service → Model → Screen
+This structure keeps the code organized because each part has its own responsibility.
+
+-- Design Pattern Used -- 
+This project follows a layered architecture.
+
+1. models/ contains the data models and JSON conversion.
+2. services/ handles API requests.
+3. screens/ contains the user interface.
+4. widgets/ stores reusable UI components.
+5. providers/ manages application state, such as the app theme.
+
+The project also uses the Provider package for state management. ThemeProvider stores the current theme, and whenever toggleTheme() is called, notifyListeners() automatically updates the user interface.
+
+-- Enhancements -- 
+Enhancement 1: Added a search bar that filters products by title.
+Enhancement 2: Added a details page. Tapping a product card opens ProductDetailScreen with the selected product’s image, title, price, and description.
+Enhancement 3: Added a settings page with a dark/light mode toggle using Provider.
+
+
+-- Lab Activity 3: Discussion -- 
+
+How the Cart Model, Service, and Screen Work Together
+- Cart data comes from the DummyJSON API (/carts/user/{id} and /carts/add).
+
+1. CartService calls the cart API endpoints.
+2. Cart and CartProduct models convert the JSON into Dart objects using fromJson().
+3. CartProvider loads the cart once, then keeps it in memory. Add, plus, minus, and remove update this shared list so changes stay when switching tabs.
+4. CartScreen shows the items, quantity controls, and a price breakdown (Total, Discount, Total Discount) in pesos (₱).
+5. Tapping a cart item opens ProductDetailScreen without the Add to Cart button.
+6. Confirm Order shows a confirmation dialog before placing the order.
+
+- Flow: API → CartService → Cart model → CartProvider → CartScreen
+
+Design Pattern
+- Same layered folders as Lab 2 (models, services, screens, providers).
+- CartProvider stores shared cart state for the whole app (DummyJSON add does not save permanently, so local state is needed).
+- HomeScreen hides the Chat FAB on the Cart tab. Tapping Chat opens a basic bottom sheet chat UI.
+
+Why getById / user cart
+- GET /carts/user/{id} loads only one user’s cart instead of all carts, so the app shows the correct cart faster.
+
+-- Enhancements -- 
+Enhancement 1: CartScreen shows cart products from the API. Tapping an item opens ProductDetailScreen (no Add to Cart). Minus removes the item at quantity 0. Price breakdown and Confirm Order dialog are included.
+Enhancement 2: Chat is a FloatingActionButton (hidden on Cart). It opens a bottom sheet chat screen.
+Enhancement 3: Load cart by user ID and Add to Cart with POST /carts/add, then update CartProvider so new items appear in the cart.
