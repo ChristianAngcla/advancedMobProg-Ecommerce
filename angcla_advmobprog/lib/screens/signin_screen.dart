@@ -6,6 +6,8 @@ import '../widgets/custom_text.dart';
 
 // LAB ACTIVITY 4 - ENHANCEMENT 2
 // Sign-In Screen with form validation, API authentication, and persistent storage.
+// LAB ACTIVITY 5 - ENHANCEMENT 4
+// Uses one normal login form and chooses Firebase or DummyJSON from the entered account identifier.
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
 
@@ -15,7 +17,7 @@ class SignInScreen extends StatefulWidget {
 
 class _SignInScreenState extends State<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _identifierController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final UserService _userService = UserService();
 
@@ -24,13 +26,14 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   // LAB ACTIVITY 4 - ENHANCEMENT 2
-  // Authentication handler: validates form, calls UserService.loginUser, and navigates on success
+  // LAB ACTIVITY 5 - ENHANCEMENT 4
+  // Uses one normal login form and chooses Firebase or DummyJSON from the entered account identifier.
   void _login() async {
     // Validate text inputs before sending network request
     if (!_formKey.currentState!.validate()) {
@@ -41,26 +44,36 @@ class _SignInScreenState extends State<SignInScreen> {
       _isLoading = true;
     });
 
+    final identifier = _identifierController.text.trim();
+    final password = _passwordController.text.trim();
+    final isEmail = identifier.contains('@');
+
     try {
-      // 1. Call UserService to authenticate against DummyJSON POST /auth/login
-      final response = await _userService.loginUser(
-        _usernameController.text,
-        _passwordController.text,
-      );
+      if (isEmail) {
+        // Firebase Auth signInWithEmailAndPassword
+        await _userService.signIn(email: identifier, password: password);
 
-      // 2. Persistent storage: UserService.loginUser automatically saves to SharedPreferences
-      if (!mounted) return;
+        if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+        setState(() {
+          _isLoading = false;
+        });
 
-      // 3. Navigate to Home screen upon successful authentication
-      Navigator.pushReplacementNamed(
-        context,
-        '/home',
-        arguments: response,
-      );
+        // Navigate to Home screen upon successful Firebase login
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        // DummyJSON POST /auth/login
+        final response = await _userService.loginUser(identifier, password);
+
+        if (!mounted) return;
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        // Navigate to Home screen upon successful DummyJSON login
+        Navigator.pushReplacementNamed(context, '/home', arguments: response);
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -69,14 +82,18 @@ class _SignInScreenState extends State<SignInScreen> {
       });
 
       // ERROR HANDLING ENHANCEMENT
-      // Display a human-friendly message instead of raw technical exceptions
-      String userFriendlyMessage = 'Invalid username or password. Please try again.';
+      // Display human-friendly error messages
+      String userFriendlyMessage = e.toString().replaceFirst('Exception: ', '');
       final rawError = e.toString();
 
-      if (rawError.contains('SocketException') || rawError.contains('ClientException')) {
-        userFriendlyMessage = 'Unable to reach server. Please check your internet connection.';
-      } else if (rawError.contains('Invalid credentials')) {
-        userFriendlyMessage = 'Incorrect username or password.';
+      if (!isEmail) {
+        if (rawError.contains('SocketException') ||
+            rawError.contains('ClientException')) {
+          userFriendlyMessage =
+              'Unable to reach server. Please check your internet connection.';
+        } else if (rawError.contains('Invalid credentials')) {
+          userFriendlyMessage = 'Incorrect username or password.';
+        }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,7 +131,6 @@ class _SignInScreenState extends State<SignInScreen> {
                       width: 100.w,
                       height: 100.h,
                       fit: BoxFit.contain,
-
                       errorBuilder: (context, error, stackTrace) {
                         return Icon(
                           Icons.school,
@@ -144,17 +160,21 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   SizedBox(height: 32.h),
 
-                  // Username Input Field
+                  // Username or Email Address Input Field
                   CustomText(
-                    text: 'Username',
+                    text: 'Username or Email Address',
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w600,
                   ),
                   SizedBox(height: 6.h),
                   TextFormField(
-                    controller: _usernameController,
+                    controller: _identifierController,
+                    keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      hintText: 'e.g. emilys',
+                      hintText: 'e.g. emilys or user@example.com',
+                      helperText:
+                          'Use your DummyJSON username or Firebase email address.',
+                      helperMaxLines: 2,
                       prefixIcon: const Icon(Icons.person_outline),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.r),
@@ -166,7 +186,15 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter your username';
+                        return 'Please enter your username or email address';
+                      }
+                      final trimmed = value.trim();
+                      if (trimmed.contains('@')) {
+                        if (!RegExp(
+                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                        ).hasMatch(trimmed)) {
+                          return 'Please enter a valid email format';
+                        }
                       }
                       return null;
                     },
@@ -186,10 +214,11 @@ class _SignInScreenState extends State<SignInScreen> {
                     decoration: InputDecoration(
                       hintText: 'Enter your password',
                       prefixIcon: const Icon(Icons.lock_outline),
-                      // UI ENHANCEMENT: Eye toggle button for password visibility
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: Colors.grey[600],
                         ),
                         onPressed: () {
@@ -209,6 +238,10 @@ class _SignInScreenState extends State<SignInScreen> {
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter your password';
+                      }
+                      final identifier = _identifierController.text.trim();
+                      if (identifier.contains('@') && value.trim().length < 6) {
+                        return 'Password must contain at least 6 characters';
                       }
                       return null;
                     },
@@ -234,11 +267,13 @@ class _SignInScreenState extends State<SignInScreen> {
                               height: 22.h,
                               child: const CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : CustomText(
-                              text: 'Log in',
+                              text: 'Sign In',
                               fontSize: 15.sp,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -246,8 +281,45 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                   ),
 
+                  // Create Firebase Account option visible for all users
                   SizedBox(height: 20.h),
-                  // Helpful tip for student testing
+                  Center(
+                    child: CustomText(
+                      text: 'New user?',
+                      fontSize: 13.sp,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  SizedBox(height: 6.h),
+                  Center(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(
+                          color: Color(0xFF0038A8),
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 10.h,
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/signup');
+                      },
+                      child: CustomText(
+                        text: 'Create a Firebase account',
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0038A8),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 20.h),
+                  // Test account hint
                   Center(
                     child: CustomText(
                       text: 'Test account: emilys / emilyspass',

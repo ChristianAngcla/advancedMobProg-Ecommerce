@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "407233565710",
+    "project_id": "angcla-advmobprog-ay2627",
+    "storage_bucket": "angcla-advmobprog-ay2627.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:407233565710:android:6817d08e051c82a213985f",
+        "android_client_info": {
+          "package_name": "com.angcla.angcla_advmobprog"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3sa0PLq0tJFoxdBhcMyrQYbc-IOVRgB0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

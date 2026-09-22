@@ -31,13 +31,19 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   // LAB ACTIVITY 4 - ENHANCEMENT 3
-  // Retrieves saved user data from SharedPreferences to load the user's specific cart
+  // LAB ACTIVITY 5 - FIREBASE CART COMPATIBILITY
+  // Retrieves saved user data from SharedPreferences to load the user's specific cart safely
   void _initializeUserCart() async {
     int targetUserId = widget.userId ?? 1;
 
     try {
       final user = await _userService.getUser();
-      if (user.id > 0) {
+      // LAB ACTIVITY 5 - FIREBASE CART COMPATIBILITY
+      if (user.isFirebaseUser) {
+        if (!mounted) return;
+        context.read<CartProvider>().loadCart(0, isFirebaseUser: true);
+        return;
+      } else if (user.id > 0) {
         targetUserId = user.id;
       }
     } catch (_) {
@@ -45,7 +51,7 @@ class _CartScreenState extends State<CartScreen> {
     }
 
     if (!mounted) return;
-    context.read<CartProvider>().loadCart(targetUserId);
+    context.read<CartProvider>().loadCart(targetUserId, isFirebaseUser: false);
   }
 
   // Enhancement 1: Click cart item card to navigate to detail screen
@@ -56,9 +62,7 @@ class _CartScreenState extends State<CartScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
@@ -67,10 +71,8 @@ class _CartScreenState extends State<CartScreen> {
         navigator.pop();
         navigator.push(
           MaterialPageRoute(
-            builder: (ctx) => ProductDetailScreen(
-              product: product,
-              showAddToCart: false,
-            ),
+            builder: (ctx) =>
+                ProductDetailScreen(product: product, showAddToCart: false),
           ),
         );
       }
@@ -119,7 +121,10 @@ class _CartScreenState extends State<CartScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.shopping_bag_outlined, color: Color(0xFF0038A8)),
+                  const Icon(
+                    Icons.shopping_bag_outlined,
+                    color: Color(0xFF0038A8),
+                  ),
                   SizedBox(width: 8.w),
                   CustomText(
                     text: 'Confirm Your Order',
@@ -148,7 +153,10 @@ class _CartScreenState extends State<CartScreen> {
                   children: [
                     _priceRow('Total Items', '${cart.totalQuantity} items'),
                     SizedBox(height: 8.h),
-                    _priceRow('Subtotal', '₱${cart.subtotal.toStringAsFixed(2)}'),
+                    _priceRow(
+                      'Subtotal',
+                      '₱${cart.subtotal.toStringAsFixed(2)}',
+                    ),
                     SizedBox(height: 8.h),
                     _priceRow(
                       'Discount Savings',
@@ -203,7 +211,9 @@ class _CartScreenState extends State<CartScreen> {
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text('Order Confirmed! Thank you for your purchase.'),
+                            content: const Text(
+                              'Order Confirmed! Thank you for your purchase.',
+                            ),
                             backgroundColor: Colors.green,
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
@@ -289,7 +299,11 @@ class _CartScreenState extends State<CartScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.shopping_cart_outlined, size: 60.sp, color: Colors.grey[400]),
+            Icon(
+              Icons.shopping_cart_outlined,
+              size: 60.sp,
+              color: Colors.grey[400],
+            ),
             SizedBox(height: 16.h),
             CustomText(
               text: 'Your Cart is Empty',

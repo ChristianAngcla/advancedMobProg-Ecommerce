@@ -86,3 +86,11 @@ Enhancement 3: Created User model (user.dart), rendered user profile on ProfileS
 Confirmation Modal Enhancement: Created a Material 3 order summary modal bottom sheet on CartScreen and a confirmation alert dialog before logging out on ProfileScreen.
 Performance Enhancement: Implemented infinite scroll pagination with limit and skip query parameters on ProductScreen to eliminate lag and loading delays.
 Error Handling Enhancement: Implemented friendly error and empty states with retry action buttons across product and cart screens.
+
+## Lab Activity 5: Discussion
+
+This activity added Firebase Authentication while keeping the previous DummyJSON login. In the normal sign-in form, a username is handled by DummyJSON through its login API, while an email address is handled by Firebase. New users create a Firebase account by entering their personal details, email address, and password. After a successful sign-in, the app opens the same home screen and shows the correct profile details based on the account type.
+
+UserService is the central file that handles the login, signup, logout, username update, password change, and account deletion actions. It also keeps the active session so the Splash Screen can decide whether to open Home or Sign In. Firebase stores the account credentials, while the extra registration details needed by this laboratory are kept locally on the same device without saving passwords or authentication tokens.
+
+Firebase improves the application by providing real email and password authentication instead of relying only on DummyJSON demo users. It allows account creation, secure sign-in, password changes, account deletion, and logout. The existing DummyJSON flow was retained so the earlier laboratory features continue to work.
