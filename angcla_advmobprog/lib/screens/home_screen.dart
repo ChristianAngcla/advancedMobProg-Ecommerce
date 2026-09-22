@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'cart_screen.dart';
+import 'profile_screen.dart';
 import 'product_screen.dart';
 import '../widgets/custom_text.dart';
+
 
 class HomeScreen extends StatefulWidget {
   final String username;
@@ -26,9 +28,11 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 2,
           title: _selectedIndex == 0
               ? Image.asset(
-                  'assets/images/nubdexchange_logo.png',
-                  scale: 11.sp,
+                  'assets/images/nu_logo.png',
+                  height: 38.h,
+                  fit: BoxFit.contain,
                 )
+
               : CustomText(
                   text: _selectedIndex == 1
                       ? 'Cart'
@@ -59,10 +63,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ProductScreen(),
             // Lab Activity 3 - Enhancement 1: Render CartScreen in main PageView container
             CartScreen(),
-            Center(
-              child: CustomText(text: 'Profile Page', fontSize: 18),
-            ),
+            // LAB ACTIVITY 4 - ENHANCEMENT 3: Render ProfileScreen with user details
+            ProfileScreen(),
           ],
+
         ),
         // Lab Activity 3 - Enhancement 2: Make the chat bottom navigation as FloatingActionButton.
         // When in the cart_screen (_selectedIndex == 1), the FloatingActionButton must be hidden (null).

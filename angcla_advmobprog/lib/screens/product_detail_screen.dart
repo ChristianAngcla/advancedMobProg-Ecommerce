@@ -25,7 +25,7 @@ class ProductDetailScreen extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Adding product to cart via API...'),
-        duration: Duration(seconds: 1),
+        duration: Duration(milliseconds: 800),
       ),
     );
 
@@ -37,6 +37,10 @@ class ProductDetailScreen extends StatelessWidget {
           SnackBar(
             content: Text('Successfully added "${product.title}" to cart!'),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.r),
+            ),
           ),
         );
       }
@@ -44,8 +48,12 @@ class ProductDetailScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to add product to cart: $e'),
-            backgroundColor: Colors.red,
+            content: const Text('Unable to add product to cart. Please check your internet connection.'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.r),
+            ),
           ),
         );
       }
@@ -56,6 +64,7 @@ class ProductDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        elevation: 0.5,
         title: CustomText(
           text: 'Product Details',
           fontSize: 18.sp,
@@ -63,12 +72,17 @@ class ProductDetailScreen extends StatelessWidget {
         ),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(18.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12.r),
+            // Product Hero Image Card
+            Card(
+              elevation: 1,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.r),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: Image.network(
                 product.thumbnail,
                 width: double.infinity,
@@ -77,70 +91,111 @@ class ProductDetailScreen extends StatelessWidget {
                 errorBuilder: (context, error, stackTrace) {
                   return SizedBox(
                     height: 220.h,
-                    child: const Center(child: Icon(Icons.image, size: 48)),
+                    child: const Center(child: Icon(Icons.image, size: 48, color: Colors.grey)),
                   );
                 },
               ),
             ),
-            SizedBox(height: 16.h),
+            SizedBox(height: 18.h),
+
+            // Product Title
             CustomText(
               text: product.title,
               fontSize: 20.sp,
               fontWeight: FontWeight.bold,
             ),
             SizedBox(height: 8.h),
+
+            // Price Tag
             CustomText(
               text: '₱${product.price.toStringAsFixed(2)}',
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.amber[800],
             ),
-            SizedBox(height: 8.h),
-            CustomText(
-              text: 'Category: ${product.category}',
-              fontSize: 14.sp,
+            SizedBox(height: 12.h),
+
+            // Category & Rating Badges
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withAlpha(25),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: CustomText(
+                    text: product.category.toUpperCase(),
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0038A8),
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withAlpha(35),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.star, size: 14, color: Colors.amber),
+                      SizedBox(width: 4.w),
+                      CustomText(
+                        text: product.rating.toString(),
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+
             if (product.brand.isNotEmpty) ...[
-              SizedBox(height: 4.h),
+              SizedBox(height: 10.h),
               CustomText(
                 text: 'Brand: ${product.brand}',
-                fontSize: 14.sp,
+                fontSize: 13.sp,
+                color: Colors.grey[700],
               ),
             ],
-            SizedBox(height: 4.h),
-            CustomText(
-              text: 'Rating: ${product.rating}',
-              fontSize: 14.sp,
-            ),
-            SizedBox(height: 16.h),
+            SizedBox(height: 18.h),
+
+            // Description Header
             CustomText(
               text: 'Description',
-              fontSize: 16.sp,
+              fontSize: 15.sp,
               fontWeight: FontWeight.bold,
             ),
-            SizedBox(height: 8.h),
+            SizedBox(height: 6.h),
             CustomText(
               text: product.description,
-              fontSize: 14.sp,
+              fontSize: 13.sp,
+              color: Colors.grey[600],
             ),
+
             if (showAddToCart) ...[
-              SizedBox(height: 24.h),
-              // Enhancement 3: Add to Cart button widget
+              SizedBox(height: 28.h),
+              // Add to Cart Button Widget
               SizedBox(
                 width: double.infinity,
-                height: 50.h,
+                height: 48.h,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amber[600],
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25.r),
+                      borderRadius: BorderRadius.circular(24.r),
                     ),
+                    elevation: 1,
                   ),
                   onPressed: () => _addToCart(context),
-                  icon: const Icon(Icons.add_shopping_cart),
+                  icon: const Icon(Icons.add_shopping_cart, size: 20),
                   label: CustomText(
                     text: 'Add to Cart',
-                    fontSize: 16.sp,
+                    fontSize: 15.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

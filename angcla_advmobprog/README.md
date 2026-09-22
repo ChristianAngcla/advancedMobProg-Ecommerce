@@ -55,3 +55,34 @@ Why getById / user cart
 Enhancement 1: CartScreen shows cart products from the API. Tapping an item opens ProductDetailScreen (no Add to Cart). Minus removes the item at quantity 0. Price breakdown and Confirm Order dialog are included.
 Enhancement 2: Chat is a FloatingActionButton (hidden on Cart). It opens a bottom sheet chat screen.
 Enhancement 3: Load cart by user ID and Add to Cart with POST /carts/add, then update CartProvider so new items appear in the cart.
+
+
+-- Lab Activity 4: Discussion --
+
+How the User Model, Services, and Screen Interact
+- In Lab Activity 4, user authentication and persistent sessions are integrated with DummyJSON (/auth/login).
+1. When a user submits their credentials on SignInScreen, UserService.loginUser() sends an HTTP POST request to /auth/login.
+2. Upon receiving the API response, UserService.saveUserData() parses the data with User.fromJson() and writes all fields (id, username, email, firstName, lastName, gender, image, accessToken) into SharedPreferences.
+3. On ProfileScreen, initState() calls UserService.getUser().
+4. UserService reads the stored session map from SharedPreferences and deserializes it into a strongly-typed User object using User.fromJson().
+5. ProfileScreen uses a FutureBuilder<User> to render the user's avatar, name, email, gender, and ID into styled cards without requiring extra internet calls.
+
+Updated Design Pattern
+- The architecture expands into a Persistent Authentication & Session-Driven Layered Architecture:
+  - Storage Layer (SharedPreferences): Functions as local device storage preserving user tokens and identity across app restarts.
+  - Lifecycle Gatekeeper (SplashScreen): Automatically inspects SharedPreferences on boot (isLoggedIn()) to determine whether to route to /home or /signin.
+  - Cross-Feature Context Sharing: Authenticated user credentials dynamically feed into other feature modules (e.g. driving user-specific cart queries).
+
+Utilizing Saved Data in Rendering CartScreen by User ID
+- In Lab 3, cart data was fetched using a hardcoded user ID.
+- In Lab 4, CartScreen queries UserService.getUser() during initialization to extract the logged-in user's true ID.
+- It passes this saved ID into CartProvider.loadCart(userId), which calls CartService.getUserCart(userId) (GET /carts/user/{id}).
+- This guarantees that whichever user logs in, the app automatically loads and displays their personal shopping cart.
+
+-- Enhancements Implemented in Lab Activity 4 --
+Enhancement 1: Built custom SplashScreen UI with NUBD Exchange branding, fade animation, and persistent authentication logic routing to /home or /signin.
+Enhancement 2: Built custom SignInScreen UI with form validation, password visibility eye toggle, and UserService.loginUser() authentication.
+Enhancement 3: Created User model (user.dart), rendered user profile on ProfileScreen, and dynamically rendered CartScreen based on the saved userId.
+Confirmation Modal Enhancement: Created a Material 3 order summary modal bottom sheet on CartScreen and a confirmation alert dialog before logging out on ProfileScreen.
+Performance Enhancement: Implemented infinite scroll pagination with limit and skip query parameters on ProductScreen to eliminate lag and loading delays.
+Error Handling Enhancement: Implemented friendly error and empty states with retry action buttons across product and cart screens.

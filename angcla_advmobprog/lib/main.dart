@@ -8,6 +8,9 @@ import 'package:provider/provider.dart';
 // screens
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/signin_screen.dart';
+import 'screens/splash_screen.dart';
+
 
 // providers
 import 'providers/cart_provider.dart';
@@ -46,11 +49,15 @@ class AngclaAdvMobProg extends StatelessWidget {
             darkTheme: ThemeData.dark(),
             themeMode: themeModel.isDark ? ThemeMode.dark : ThemeMode.light,
             title: 'E-Commerce App',
-            initialRoute: '/home',
+            // LAB ACTIVITY 4 - ENHANCEMENT 1: App starts on SplashScreen to check login state
+            initialRoute: '/splash',
             routes: {
+              '/splash': (context) => const SplashScreen(),
+              '/signin': (context) => const SignInScreen(),
               '/home': (context) => const HomeScreen(),
               '/settings': (context) => const SettingsScreen(),
             },
+
           );
         },
       ),

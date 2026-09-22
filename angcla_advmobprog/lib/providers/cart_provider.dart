@@ -5,17 +5,19 @@ import '../models/product.dart';
 import '../services/cart_service.dart';
 
 /// Shared cart state so adds/removes survive when switching tabs.
+/// LAB ACTIVITY 4 - ENHANCEMENT 3: Supports dynamic user cart loading based on logged-in userId.
 class CartProvider with ChangeNotifier {
   final CartService _cartService = CartService();
-  final int userId;
+  int _currentUserId = 1;
 
-  CartProvider({this.userId = 1});
+  CartProvider({int userId = 1}) : _currentUserId = userId;
 
   List<CartProduct> _products = [];
   bool _loading = false;
   bool _loaded = false;
   String? _error;
 
+  int get currentUserId => _currentUserId;
   List<CartProduct> get products => List.unmodifiable(_products);
   bool get isLoading => _loading;
   bool get isLoaded => _loaded;
@@ -29,8 +31,17 @@ class CartProvider with ChangeNotifier {
 
   double get discountAmount => subtotal - discountedTotal;
 
-  /// Load user cart from API once; later edits stay in memory.
-  Future<void> loadCart() async {
+  int get totalQuantity =>
+      _products.fold(0, (sum, item) => sum + item.quantity);
+
+  // LAB ACTIVITY 4 - ENHANCEMENT 3
+  // Loads user cart from API using the authenticated user's ID
+  Future<void> loadCart([int? newUserId]) async {
+    if (newUserId != null && newUserId != _currentUserId) {
+      _currentUserId = newUserId;
+      _loaded = false; // Force refresh if user changed
+    }
+
     if (_loaded || _loading) return;
 
     _loading = true;
@@ -38,15 +49,21 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final cart = await _cartService.getUserCart(userId);
+      final cart = await _cartService.getUserCart(_currentUserId);
       _products = List<CartProduct>.from(cart.products);
       _loaded = true;
     } catch (e) {
-      _error = e.toString();
+      _error = 'Unable to load cart from server. Please try again.';
     } finally {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  // Force reloads the cart (useful for retry buttons)
+  Future<void> retryLoadCart() async {
+    _loaded = false;
+    await loadCart(_currentUserId);
   }
 
   void increaseQuantity(int index) {
@@ -68,10 +85,17 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Clears the cart after a confirmed order
+  void clearCart() {
+    _products.clear();
+    _loaded = true;
+    notifyListeners();
+  }
+
   /// Calls DummyJSON add API, then updates local cart (API does not persist).
   Future<void> addProduct(Product product, {int quantity = 1}) async {
     await _cartService.addToCart(
-      userId: userId,
+      userId: _currentUserId,
       productId: product.id,
       quantity: quantity,
     );

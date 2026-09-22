@@ -13,6 +13,9 @@ dependencies:
   flutter_screenutil: ^5.9.3
   http: ^1.5.0
   provider: ^6.1.5
+  # LAB ACTIVITY 4: Persistent authentication and local storage
+  shared_preferences: ^2.5.2
+
 
 dev_dependencies:
   flutter_test:

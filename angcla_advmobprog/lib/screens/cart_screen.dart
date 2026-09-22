@@ -5,15 +5,16 @@ import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../services/product_service.dart';
+import '../services/user_service.dart';
 import '../widgets/custom_text.dart';
 import 'product_detail_screen.dart';
 
-// Lab Activity 3 - Enhancement 1: Make a cart_screen in order to render the new API endpoint.
-// Lab Activity 3 - Enhancement 3: Integrate cart by user ID to render only one user cart.
+// LAB ACTIVITY 4 - ENHANCEMENT 3
+// Cart Screen with dynamic user-based cart loading, polished Material 3 order confirmation modal, and improved error/empty states.
 class CartScreen extends StatefulWidget {
-  final int userId;
+  final int? userId;
 
-  const CartScreen({super.key, this.userId = 1});
+  const CartScreen({super.key, this.userId});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -21,17 +22,33 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final ProductService _productService = ProductService();
+  final UserService _userService = UserService();
 
   @override
   void initState() {
     super.initState();
-    // Load API cart into shared CartProvider (only once)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CartProvider>().loadCart();
-    });
+    _initializeUserCart();
   }
 
-  // Enhancement 1: The items on the cart_screen must be clickable going to the detail_screen
+  // LAB ACTIVITY 4 - ENHANCEMENT 3
+  // Retrieves saved user data from SharedPreferences to load the user's specific cart
+  void _initializeUserCart() async {
+    int targetUserId = widget.userId ?? 1;
+
+    try {
+      final user = await _userService.getUser();
+      if (user.id > 0) {
+        targetUserId = user.id;
+      }
+    } catch (_) {
+      // Fallback to default user ID if not yet available
+    }
+
+    if (!mounted) return;
+    context.read<CartProvider>().loadCart(targetUserId);
+  }
+
+  // Enhancement 1: Click cart item card to navigate to detail screen
   void _navigateToDetail(int productId) async {
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -61,69 +78,236 @@ class _CartScreenState extends State<CartScreen> {
       if (mounted) {
         navigator.pop();
         messenger.showSnackBar(
-          SnackBar(content: Text('Failed to load product details: $e')),
+          const SnackBar(
+            content: Text('Unable to load product details. Please try again.'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
   }
 
-  Future<void> _confirmOrder(CartProvider cart) async {
-    final confirmed = await showDialog<bool>(
+  // CONFIRMATION MODAL ENHANCEMENT
+  // Material 3 bottom sheet modal with complete order summary and confirmation actions
+  void _showOrderConfirmationModal(BuildContext context, CartProvider cart) {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirm Order'),
-        content: Text(
-          'Place this order for ₱${cart.discountedTotal.toStringAsFixed(2)}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (modalContext) {
+        return Container(
+          padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 32.h),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 44.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+              ),
+              SizedBox(height: 18.h),
 
-    if (confirmed == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Order Confirmed!'),
-          backgroundColor: Colors.amber,
-        ),
-      );
-    }
+              // Title with Cart Icon
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.shopping_bag_outlined, color: Color(0xFF0038A8)),
+                  SizedBox(width: 8.w),
+                  CustomText(
+                    text: 'Confirm Your Order',
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              CustomText(
+                text: 'Please review your order summary below:',
+                fontSize: 13.sp,
+                color: Colors.grey[600],
+              ),
+              SizedBox(height: 20.h),
+
+              // Order Summary Container
+              Container(
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: Colors.grey.withAlpha(40)),
+                ),
+                child: Column(
+                  children: [
+                    _priceRow('Total Items', '${cart.totalQuantity} items'),
+                    SizedBox(height: 8.h),
+                    _priceRow('Subtotal', '₱${cart.subtotal.toStringAsFixed(2)}'),
+                    SizedBox(height: 8.h),
+                    _priceRow(
+                      'Discount Savings',
+                      '-₱${cart.discountAmount.toStringAsFixed(2)}',
+                      valueColor: Colors.green[700],
+                    ),
+                    const Divider(height: 20),
+                    _priceRow(
+                      'Final Amount',
+                      '₱${cart.discountedTotal.toStringAsFixed(2)}',
+                      isBold: true,
+                      valueColor: Colors.amber[800],
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24.h),
+
+              // Action Buttons (Cancel and Confirm)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(modalContext),
+                      child: CustomText(
+                        text: 'Cancel',
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0038A8),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(modalContext); // Close modal
+                        cart.clearCart(); // Complete order and clear items
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Order Confirmed! Thank you for your purchase.'),
+                            backgroundColor: Colors.green,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.r),
+                            ),
+                          ),
+                        );
+                      },
+                      child: CustomText(
+                        text: 'Place Order',
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
 
+    // LOADING STATE
     if (cart.isLoading && !cart.isLoaded) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0038A8)),
+        ),
+      );
     }
 
+    // ERROR STATE WITH RETRY BUTTON
     if (cart.error != null && !cart.isLoaded) {
       return Center(
-        child: CustomText(
-          text: 'Error loading cart: ${cart.error}',
-          fontSize: 14.sp,
+        child: Padding(
+          padding: EdgeInsets.all(24.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_off_outlined, size: 54.sp, color: Colors.grey),
+              SizedBox(height: 12.h),
+              CustomText(
+                text: 'Unable to Load Cart',
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+              ),
+              SizedBox(height: 6.h),
+              CustomText(
+                text: cart.error ?? 'Please check your internet connection.',
+                fontSize: 13.sp,
+                color: Colors.grey[600],
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 20.h),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0038A8),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                ),
+                onPressed: () => cart.retryLoadCart(),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       );
     }
 
+    // EMPTY STATE
     if (cart.products.isEmpty) {
       return Center(
-        child: CustomText(
-          text: 'Your cart is empty.',
-          fontSize: 16.sp,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shopping_cart_outlined, size: 60.sp, color: Colors.grey[400]),
+            SizedBox(height: 16.h),
+            CustomText(
+              text: 'Your Cart is Empty',
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+            ),
+            SizedBox(height: 6.h),
+            CustomText(
+              text: 'Explore the shop to add items to your cart.',
+              fontSize: 13.sp,
+              color: Colors.grey[500],
+            ),
+          ],
         ),
       );
     }
 
+    // SUCCESS STATE: RENDER CART ITEMS
     return Scaffold(
       body: Column(
         children: [
@@ -137,8 +321,9 @@ class _CartScreenState extends State<CartScreen> {
                   margin: EdgeInsets.only(bottom: 12.h),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.r),
+                    side: BorderSide(color: Colors.grey.withAlpha(30)),
                   ),
-                  elevation: 1,
+                  elevation: 0.8,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12.r),
                     onTap: () => _navigateToDetail(item.id),
@@ -150,14 +335,14 @@ class _CartScreenState extends State<CartScreen> {
                             borderRadius: BorderRadius.circular(8.r),
                             child: Image.network(
                               item.thumbnail,
-                              width: 60.w,
-                              height: 60.h,
+                              width: 64.w,
+                              height: 64.h,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) =>
                                   Icon(Icons.image, size: 40.sp),
                             ),
                           ),
-                          SizedBox(width: 12.w),
+                          SizedBox(width: 14.w),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,6 +412,7 @@ class _CartScreenState extends State<CartScreen> {
               },
             ),
           ),
+          // Bottom Subtotal and Checkout Bar
           Container(
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
             decoration: BoxDecoration(
@@ -250,15 +436,15 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 SizedBox(height: 6.h),
                 _priceRow(
-                  'Total Discount',
+                  'Total after Discount',
                   '₱${cart.discountedTotal.toStringAsFixed(2)}',
                   isBold: true,
                   valueColor: Colors.amber[800],
                 ),
-                SizedBox(height: 12.h),
+                SizedBox(height: 14.h),
                 SizedBox(
                   width: double.infinity,
-                  height: 45.h,
+                  height: 46.h,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber[500],
@@ -267,7 +453,7 @@ class _CartScreenState extends State<CartScreen> {
                         borderRadius: BorderRadius.circular(25.r),
                       ),
                     ),
-                    onPressed: () => _confirmOrder(cart),
+                    onPressed: () => _showOrderConfirmationModal(context, cart),
                     child: CustomText(
                       text: 'Confirm Order',
                       fontSize: 15.sp,
