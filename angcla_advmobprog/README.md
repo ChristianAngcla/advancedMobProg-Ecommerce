@@ -94,3 +94,9 @@ This activity added Firebase Authentication while keeping the previous DummyJSON
 UserService is the central file that handles the login, signup, logout, username update, password change, and account deletion actions. It also keeps the active session so the Splash Screen can decide whether to open Home or Sign In. Firebase stores the account credentials, while the extra registration details needed by this laboratory are kept locally on the same device without saving passwords or authentication tokens.
 
 Firebase improves the application by providing real email and password authentication instead of relying only on DummyJSON demo users. It allows account creation, secure sign-in, password changes, account deletion, and logout. The existing DummyJSON flow was retained so the earlier laboratory features continue to work.
+
+## Lab Activity 6: Discussion
+
+Lab Activity 6 added Cloud Firestore for direct messaging between Firebase users. When a Firebase user signs up or signs in, UserService saves safe profile details in the `users` collection. The Chat screen displays other registered users, supports searching by name, username, or email, and opens a one-to-one conversation. Each pair uses one sorted chat-room ID, so both users access the same message history.
+
+ChatService saves and streams messages from Firestore, allowing conversations to update automatically. The chat list shows the latest message and unread count. Opening a chat marks incoming messages as read; one check means a message was saved, while double checks mean the receiver opened the conversation. NU Connect follows the project’s blue and gold design and includes clear loading, empty, and error states.

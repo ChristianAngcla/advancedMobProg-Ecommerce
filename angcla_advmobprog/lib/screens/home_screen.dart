@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'cart_screen.dart';
-import 'profile_screen.dart';
+import 'chat_screen.dart';
 import 'product_screen.dart';
+import 'profile_screen.dart';
 import '../widgets/custom_text.dart';
 
-
+// LAB ACTIVITY 6 - CHAT NAVIGATION
+// Main screen containing four tabs: Shop (0), Chat (1), Cart (2), and Profile (3).
 class HomeScreen extends StatefulWidget {
   final String username;
   const HomeScreen({super.key, this.username = ''});
@@ -32,13 +34,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   height: 38.h,
                   fit: BoxFit.contain,
                 )
-
               : CustomText(
                   text: _selectedIndex == 1
-                      ? 'Cart'
+                      ? 'Chat'
                       : _selectedIndex == 2
-                          ? 'Profile'
-                          : 'Home',
+                      ? 'Cart'
+                      : _selectedIndex == 3
+                      ? 'Profile'
+                      : 'Home',
                   fontSize: 20.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -51,6 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+        // LAB ACTIVITY 6 - CHAT NAVIGATION
+        // PageView with exactly four tabs: Shop (0), Chat (1), Cart (2), Profile (3)
         body: PageView(
           controller: _pageController,
           physics: const NeverScrollableScrollPhysics(),
@@ -61,41 +66,30 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           children: const [
             ProductScreen(),
-            // Lab Activity 3 - Enhancement 1: Render CartScreen in main PageView container
+            ChatScreen(),
             CartScreen(),
-            // LAB ACTIVITY 4 - ENHANCEMENT 3: Render ProfileScreen with user details
             ProfileScreen(),
           ],
-
         ),
-        // Lab Activity 3 - Enhancement 2: Make the chat bottom navigation as FloatingActionButton.
-        // When in the cart_screen (_selectedIndex == 1), the FloatingActionButton must be hidden (null).
-        floatingActionButton: _selectedIndex == 1
-            ? null
-            : FloatingActionButton(
-                onPressed: () => _openChatSheet(context),
-                backgroundColor: Colors.blueAccent,
-                child: const Icon(Icons.chat, color: Colors.white),
-              ),
+        // LAB ACTIVITY 6 - CHAT NAVIGATION
+        // BottomNavigationBar with exactly four tabs: Shop, Chat, Cart, Profile
         bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
           showSelectedLabels: false,
           showUnselectedLabels: false,
           currentIndex: _selectedIndex,
           onTap: _onTappedBar,
           items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.shop_2), label: 'Shop'),
             BottomNavigationBarItem(
-              icon: Icon(Icons.shop_2),
-              label: 'Shop',
+              icon: Icon(Icons.forum_rounded),
+              label: 'Chat',
             ),
-            // Lab Activity 3 - Enhancement 2: Chat tab removed from BottomNavigationBar and replaced with Cart tab
             BottomNavigationBarItem(
               icon: Icon(Icons.shopping_cart),
               label: 'Cart',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Profile',
-            ),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           ],
         ),
       ),
@@ -107,106 +101,5 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedIndex = value;
     });
     _pageController.jumpToPage(value);
-  }
-
-  // Basic chat UI that slides up from the bottom
-  void _openChatSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
-      ),
-      builder: (ctx) {
-        return SizedBox(
-          height: MediaQuery.of(ctx).size.height * 0.55,
-          child: Column(
-            children: [
-              SizedBox(height: 8.h),
-              Container(
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: Colors.grey[400],
-                  borderRadius: BorderRadius.circular(4.r),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(12.w),
-                child: CustomText(
-                  text: 'Chat Support',
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.all(16.w),
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        padding: EdgeInsets.all(12.w),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        child: CustomText(
-                          text: 'Hi! How can we help you today?',
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 12.h),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Container(
-                        padding: EdgeInsets.all(12.w),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[100],
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        child: CustomText(
-                          text: 'I have a question about my order.',
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 16.h),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Type a message...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24.r),
-                          ),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 10.h,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.send),
-                      color: Colors.blueAccent,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 }

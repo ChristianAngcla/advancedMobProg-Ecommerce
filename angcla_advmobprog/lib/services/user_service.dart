@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -10,9 +11,12 @@ import '../models/user.dart';
 // LAB ACTIVITY 4 - Service Layer for Authentication and Session Persistence
 // Handles logging in against the DummyJSON API and storing user credentials on device.
 // LAB ACTIVITY 5 - Extended to support Firebase Authentication and Account Management.
+// LAB ACTIVITY 6 - Extended to maintain a Cloud Firestore user directory for live chat.
 class UserService {
   final firebase_auth.FirebaseAuth _firebaseAuth =
       firebase_auth.FirebaseAuth.instance;
+  // LAB ACTIVITY 6 - ENHANCEMENT 1
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Map<String, dynamic> data = {};
 
@@ -109,6 +113,34 @@ class UserService {
     await prefs.remove(_profileCacheKey(firebaseUid));
   }
 
+  // LAB ACTIVITY 6 - ENHANCEMENT 1
+  // Saves the active Firebase user's chat-profile document to Firestore (users/<uid>)
+  Future<void> _saveUserToFirestore({
+    required String uid,
+    required String username,
+    required String firstName,
+    required String lastName,
+    required int? age,
+    required String contactNo,
+    required String email,
+  }) async {
+    final userMap = {
+      'uid': uid,
+      'username': username,
+      'firstName': firstName,
+      'lastName': lastName,
+      'age': age,
+      'contactNo': contactNo,
+      'email': email,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .set(userMap, SetOptions(merge: true));
+  }
+
   // LAB ACTIVITY 5 - ENHANCEMENT 1
   // Signs in an existing Firebase account using email and password.
   Future<firebase_auth.UserCredential> signIn({
@@ -154,6 +186,18 @@ class UserService {
           lastName: resolvedLastName,
           age: resolvedAge,
           contactNo: resolvedContactNo,
+        );
+
+        // LAB ACTIVITY 6 - ENHANCEMENT 1
+        // Saves/updates the user's directory document in Firestore (users/<uid>)
+        await _saveUserToFirestore(
+          uid: firebaseUser.uid,
+          username: resolvedUsername,
+          firstName: resolvedFirstName,
+          lastName: resolvedLastName,
+          age: resolvedAge,
+          contactNo: resolvedContactNo,
+          email: firebaseUser.email ?? email.trim(),
         );
       }
 
@@ -209,6 +253,18 @@ class UserService {
           age: age,
           contactNo: contactNo.trim(),
         );
+
+        // LAB ACTIVITY 6 - ENHANCEMENT 1
+        // Saves the new user's chat-profile document to Firestore (users/<uid>)
+        await _saveUserToFirestore(
+          uid: firebaseUser.uid,
+          username: username.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          age: age,
+          contactNo: contactNo.trim(),
+          email: email.trim(),
+        );
       }
 
       return credential;
@@ -246,6 +302,13 @@ class UserService {
         cached['username'] = username.trim();
         await prefs.setString(_profileCacheKey(user.uid), jsonEncode(cached));
       }
+
+      // LAB ACTIVITY 6 - ENHANCEMENT 1
+      // Keep username synchronized in the Firestore users directory
+      await _firestore.collection('users').doc(user.uid).set({
+        'username': username.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } on firebase_auth.FirebaseAuthException catch (e) {
       debugPrint('Firebase updateUsername error: ${e.code} - ${e.message}');
       throw Exception(_getFirebaseErrorMessage(e));
